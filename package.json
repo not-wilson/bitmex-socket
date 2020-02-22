@@ -1,0 +1,28 @@
+{
+  "name": "bitmex-socket",
+  "version": "1.0.0",
+  "description": "Connect and emit data from BitMEX Socket stream.",
+  "main": "src/BitmexSocket.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/not-wilson/bitmex-socket.git"
+  },
+  "keywords": [
+    "bitmex",
+    "socket",
+    "api",
+    "handler"
+  ],
+  "author": "notwilson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/not-wilson/bitmex-socket/issues"
+  },
+  "homepage": "https://github.com/not-wilson/bitmex-socket#readme",
+  "dependencies": {
+    "ws": "^7.2.1"
+  }
+}
