@@ -44,8 +44,6 @@ class BitmexSocket extends WebSocket {
         // Store a copy of the book within the socket using bitmex-book library.
         if(!vars.includes('book')) options.book = false
 
-        console.log(options)
-
         // Force symbol API compliance.
         for(let i = 0; i < symbols.length; i++) symbols[i] = symbols[i].toUpperCase()
 
