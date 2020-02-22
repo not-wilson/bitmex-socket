@@ -25,24 +25,26 @@ class BitmexSocket extends WebSocket {
         const vars = Object.keys(options || {})
 
         // Determine if we want testnet or not.
-        if(!vars['testnet']) options.testnet = false
+        if(!vars.includes('testnet')) options.testnet = false
 
         // Initialze the socket on created.
-        if(!vars['init']) options.init = true
+        if(!vars.includes('init')) options.init = true
 
         // Size and delay in seconds of the message queue.
-        if(!vars['queueSize'])  options.queueSize   = 5
-        if(!vars['queueDelay']) options.queueDelay  = 5
+        if(!vars.includes('queueSize'))  options.queueSize   = 5
+        if(!vars.includes('queueDelay')) options.queueDelay  = 5
 
         // Ping delay in seconds.
-        if(!vars['pingDelay']) options.pingDelay = 5
+        if(!vars.includes('pingDelay')) options.pingDelay = 5
 
         // Handle reconect.
-        if(!vars['reconnect']) options.reconnect = true
-        if(!vars['connDelay']) options.connDelay = 10
+        if(!vars.includes('reconnect')) options.reconnect = true
+        if(!vars.includes('connDelay')) options.connDelay = 10
 
         // Store a copy of the book within the socket using bitmex-book library.
-        if(!vars['book']) options.book = false
+        if(!vars.includes('book')) options.book = false
+
+        console.log(options)
 
         // Force symbol API compliance.
         for(let i = 0; i < symbols.length; i++) symbols[i] = symbols[i].toUpperCase()
