@@ -1,6 +1,6 @@
 {
   "name": "bitmex-socket",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "Connect and emit data from BitMEX Websocket API.",
   "main": "src/socket.js",
   "scripts": {

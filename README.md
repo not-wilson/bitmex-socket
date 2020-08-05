@@ -38,6 +38,17 @@ stream.on('insert',         (table, data, full_reply) => console.log(`Stream ${s
 stream.on('update',         (table, data, full_reply) => console.log(`Stream ${stream.id} received an UPDATE for ${table}`))
 stream.on('delete',         (table, data, full_reply) => console.log(`Stream ${stream.id} received a DELETE for ${table}`))
 
+// The stream can also use the REST API. Streams with proper auth credentials may do private things.
+stream.send('order', 'POST', { orderQty: 1, symbol: "XBTUSD", side: "Buy" }).then(result => console.log(result)).catch(err => console.error(err))
+
+// If you just only wanted to use the rest API.
+const socket = new BitmexSocket
+const stream = socket.new_stream(true) // No connect.
+stream.authenticate('key', 'secret') // Adds the key/secret to a secureContext object.
+
+// Stream can now do REST API calls including private if key/secret is valud.
+stream.send('order', 'POST', { orderQty: 1, symbol: "XBTUSD", side: "Sell" }).then(result => console.log(result)).catch(err => console.error(err))
+
 // The socket is rate-limited on our end at 5 request bursts every 5 seconds. So 5 requests, 5 seconds repeat.
 // You can alter the rate limits of the message queue on socket creation. Delay is in seconds.
 // I have never been rate-limited on the BitMEX end using this queue method and the default selected times.
@@ -71,9 +82,12 @@ A jesture of notice or a token of appreciation:
 - XRP: rBgnUKAEiFhCRLPoYNPPe3JUWayRjP6Ayg (destination tag: 536785858)
 
 ## Changelog
+- 2.1.0
+    - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the sub. `stream.on('subscribe', (table, symbol) => {})` If symbol is omitted, it's the global trade table, otherwise it's a specific one.
+    - Added REST API to BitmexStream object. `stream.send(dir, type = 'GET', data = {})`. Streams that have authenticated on the socket may also perform private REST functions such as making new orders or whatever other permissions the API key allows.
 - 2.0.2
-    - Fixed bug in stream.on('partial|insert|update|delete', (table, data, row) => {}): data was sending wrong data object.
-    - Added force param to stream.authenticate(key, secret, force = false): stream.authenticate() won't add the authenticate message to socket queue if stream isn't already connected unless force is true. It will however add the supplied key/secret to the secureContext for authentication later if connect() is called manually.
+    - Fixed bug in `stream.on('partial|insert|update|delete', (table, data, row) => {})`: data was sending wrong data object.
+    - Added force param to `stream.authenticate(key, secret, force = false)`: stream.authenticate() won't add the authenticate message to socket queue if stream isn't already connected unless force is true. It will however add the supplied key/secret to the secureContext for authentication later if connect() is called manually.
     - Added changelog.
 - 2.0.1
     - Added ping/pong back for main socket.

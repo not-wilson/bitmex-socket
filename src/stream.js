@@ -2,6 +2,8 @@
 const EventEmitter  = require('events').EventEmitter
 const randomBytes   = require('crypto').randomBytes
 const createHmac    = require('crypto').createHmac
+const Agent         = require('https').Agent
+const request       = require('https').request
 
 // Object symbols.
 const s = {
@@ -29,7 +31,8 @@ class BitmexStream extends EventEmitter {
         this[s.state] = {
             connected:      false,
             authenticated:  false,
-            tables:         []
+            tables:         [],
+            agent:          new Agent({ keeyAlive: true })
         }
     }
 
@@ -114,8 +117,17 @@ class BitmexStream extends EventEmitter {
                 // Add the table to the list.
                 this[s.state].tables.push(reply.subscribe)
 
-                // Emit the subscription.
-                this.emit('subscribe', reply.subscribe)
+                // If symbol specific, emit the table and symbol separately.
+                if(reply.subscribe.includes(':')) {
+                    const tab   = reply.subscribe.substring(0, reply.subscribe.indexOf(':'))
+                    const strm  = reply.subscribe.substring(reply.subscribe.indexOf(':') + 1)
+                    this.emit('subscribe', tab, strm)
+
+                // Emit the subscription event.
+                } else {
+                    // Emit the subscription.
+                    this.emit('subscribe', reply.subscribe)
+                }
             }
 
             // A successful unsubscription event.
@@ -163,6 +175,56 @@ class BitmexStream extends EventEmitter {
                 this.emit('disconnect')
             }
         }
+    }
+
+    // Send data along the REST API.
+    send(path, type = 'GET', data = {}) {
+        // Stringify the JSON data.
+        if(data) data = JSON.stringify(data)
+
+        // Return a promise for a result.
+        return new Promise((accept, reject) => {
+            // Build request options.
+            const options = {
+                hostname: 'www.bitmex.com',
+                port:       443,
+                path:       `/api/v1/${path}`,
+                method:     type,
+                agent:      this[s.state].agent,
+                headers: {
+                    'Content-Type':     'application/json',
+                    'Content-Length':   data ? Buffer.byteLength(data) : 0,
+                }
+            }
+
+            // Public channels will reject if any one of these is present and/or the signature is invalid.
+            const context = secureContext[this.id]
+            if(context) {
+                const expires                       = Math.floor(new Date().getTime() / 1000) + 60
+                options.headers['api-expires']      = expires
+                options.headers['api-key']          = context.key
+                options.headers['api-signature']    = createHmac('sha256', context.secret).update(`${type}${options.path}${expires}${data ? data : ''}`).digest('hex')
+            }
+
+            // Finish request.
+            const req = request(options, res => {
+                const result = []
+                res.on('data', data => result.push(data))
+                res.on('end', () => {
+                    try         { accept(JSON.parse(Buffer.concat(result).toString())) }    // Everything went as expected.
+                    catch(e)    { reject(Buffer.concat(result).toString()) }                // Data received isn't JSON. HTML error it is.
+                })
+            })
+
+            // Reject the promise on received error.
+            req.on('error', reject)
+
+            // Send the data down the stream.
+            if(data) req.write(data)
+
+            // Finalise the request.
+            req.end()
+        })
     }
 }
 
