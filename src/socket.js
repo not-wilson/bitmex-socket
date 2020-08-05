@@ -26,6 +26,14 @@ class BitmexSocket extends EventEmitter {
             connects:   0,      // How many times we've used this object to connect (n - 1 = disconnects really)
         }
 
+        // Ping-Pong timer to keep connections alive.
+        const ping = {
+            tool:       null,
+            start:      () => { ping.stop(); ping.tool = setTimeout(() => this[s.socket].send("ping"), 5000) },
+            stop:       () => { clearTimeout(ping.tool); ping.tool = null },
+            restart:    () => { ping.stop(); ping.start() }
+        }
+
         // Process requests via queue to avoid rate-limit.
         this[s.queue] = {
             timeout:    null,
@@ -66,10 +74,19 @@ class BitmexSocket extends EventEmitter {
         this[s.socket].on('open', () => {
             // Start the command queue.
             this[s.queue].init()
+
+            // Start ping-pong request.
+            ping.start()
         })
 
         // Connection to BitMEX has closed.
         this[s.socket].on('close', () => {
+            // Halt the command queue
+            this[s.queue].stop()
+
+            // Stop pinging.
+            ping.stop()
+
             // Re-build command-queue for connection.
             this[s.queue].add({ type: 1 })
 
@@ -92,6 +109,9 @@ class BitmexSocket extends EventEmitter {
 
         // Received a message from BitMEX.
         this[s.socket].on('message', message => {
+            // Re-start ping-pong.
+            ping.restart()
+
             // Don't parse a pong, mate.
             if(message === "pong") return
 
