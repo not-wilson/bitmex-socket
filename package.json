@@ -1,8 +1,8 @@
 {
   "name": "bitmex-socket",
-  "version": "1.0.2",
-  "description": "Connect and emit data from BitMEX Socket stream.",
-  "main": "src/BitmexSocket.js",
+  "version": "2.0.0",
+  "description": "Connect and emit data from BitMEX Websocket API.",
+  "main": "src/socket.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
