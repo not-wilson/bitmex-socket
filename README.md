@@ -17,7 +17,7 @@ socket.on('error', err => console.error(err))
 const stream = socket.new_stream()
 
 // Authenticate the stream object.
-stream.authenticate('key', 'secret')
+stream.authenticate('key', 'secret', true)  // Force the authenticate message into the message queue even though stream hasn't connected yet.
 
 // Subscribe to some tables.
 stream.subscribe('order', 'position', 'margin', 'wallet')
@@ -36,7 +36,7 @@ stream.on('unsubscribe',    table => console.log(`Stream ${stream.id} has unsubs
 stream.on('partial',        (table, data, full_reply) => console.log(`Stream ${stream.id} received a PARTIAL for ${table}`))
 stream.on('insert',         (table, data, full_reply) => console.log(`Stream ${stream.id} received an INSERT for ${table}`))
 stream.on('update',         (table, data, full_reply) => console.log(`Stream ${stream.id} received an UPDATE for ${table}`))
-stream.on('update',         (table, data, full_reply) => console.log(`Stream ${stream.id} received a DELETE for ${table}`))
+stream.on('delete',         (table, data, full_reply) => console.log(`Stream ${stream.id} received a DELETE for ${table}`))
 
 // The socket is rate-limited on our end at 5 request bursts every 5 seconds. So 5 requests, 5 seconds repeat.
 // You can alter the rate limits of the message queue on socket creation. Delay is in seconds.
@@ -69,3 +69,14 @@ A jesture of notice or a token of appreciation:
 - BTC: 1HzR3Vyu231E8SsGLUbNYSb92bn6MGLEaV  
 - LTC: LTBHggmnrMACoB3JAH8rMy9r8hGxum7ZSw  
 - XRP: rBgnUKAEiFhCRLPoYNPPe3JUWayRjP6Ayg (destination tag: 536785858)
+
+## Changelog
+- 2.0.2
+    - Fixed bug in stream.on('partial|insert|update|delete', (table, data, row) => {}): data was sending wrong data object.
+    - Added force param to stream.authenticate(key, secret, force = false): stream.authenticate() won't add the authenticate message to socket queue if stream isn't already connected unless force is true. It will however add the supplied key/secret to the secureContext for authentication later if connect() is called manually.
+    - Added changelog.
+- 2.0.1
+    - Added ping/pong back for main socket.
+    - Improved docs somewhat with examples on disconnect() and connect()
+- 2.0.0
+    - Complete rewrite and simplification of base library.

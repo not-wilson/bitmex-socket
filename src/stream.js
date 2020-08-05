@@ -62,12 +62,12 @@ class BitmexStream extends EventEmitter {
     }
 
     // Upgrade stream to a private stream.
-    authenticate(key, secret) {
+    authenticate(key, secret, force = false) {
         // Convert a JS timestamp to a Unix timestamp and add a minute.
         const expires = Math.floor(new Date().getTime() / 1000) + 60
 
-        // Send an authenticate request.
-        this.socket.command(this, { action: { op: "authKeyExpires", args: [key, expires, createHmac('sha256', secret).update('GET/realtime' + expires).digest('hex')] }})
+        // Send an authenticate request if connected, otherwise add key/secret to the secureInfo and wait for connect() call.
+        if(this[s.state].connected || force) this.socket.command(this, { action: { op: "authKeyExpires", args: [key, expires, createHmac('sha256', secret).update('GET/realtime' + expires).digest('hex')] }})
 
         // Add the key and secret for use later.
         if(!secureContext[this.id]) secureContext[this.id] = { key, secret }
@@ -145,7 +145,7 @@ class BitmexStream extends EventEmitter {
                 delete reply.data
 
                 // Emit the event as the action, with table and data. Add the modified reply (less data) to the end in case we want keys or attributes from partial.
-                this.emit(reply.action, reply.table, reply.data, reply)
+                this.emit(reply.action, reply.table, data, reply)
             }
 
             // Fire off any unknown replies as errors so I'll know about them soon enough.
