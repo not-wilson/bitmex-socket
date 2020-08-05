@@ -124,10 +124,7 @@ class BitmexStream extends EventEmitter {
                     this.emit('subscribe', tab, strm)
 
                 // Emit the subscription event.
-                } else {
-                    // Emit the subscription.
-                    this.emit('subscribe', reply.subscribe)
-                }
+                } else this.emit('subscribe', reply.subscribe)
             }
 
             // A successful unsubscription event.
@@ -136,8 +133,14 @@ class BitmexStream extends EventEmitter {
                 const index = this[s.state].tables.findIndex(val => val === reply.unsubscribe)
                 this[s.state].tables.splice(index, 1)
 
-                // Emit the unsubscription.
-                this.emit('unsubscribe', reply.unsubscribe)
+                // If symbol specific, emit the table and symbol separately.
+                if(reply.unsubscribe.includes(':')) {
+                    const tab   = reply.unsubscribe.substring(0, reply.unsubscribe.indexOf(':'))
+                    const strm  = reply.unsubscribe.substring(reply.unsubscribe.indexOf(':') + 1)
+                    this.emit('unsubscribe', tab, strm)
+
+                // Emit the subscription event.
+                } else this.emit('unsubscribe', reply.unsubscribe)
             }
 
             // An error has been detected.

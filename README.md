@@ -83,7 +83,7 @@ A jesture of notice or a token of appreciation:
 
 ## Changelog
 - 2.1.0
-    - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the sub. `stream.on('subscribe', (table, symbol) => {})` If symbol is omitted, it's the global trade table, otherwise it's a specific one.
+    - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the channel. `stream.on('subscribe', (table, channel) => {})` If channel is omitted, it's the global table, otherwise it's a specific one.
     - Added REST API to BitmexStream object. `stream.send(dir, type = 'GET', data = {})`. Streams that have authenticated on the socket may also perform private REST functions such as making new orders or whatever other permissions the API key allows.
 - 2.0.2
     - Fixed bug in `stream.on('partial|insert|update|delete', (table, data, row) => {})`: data was sending wrong data object.
