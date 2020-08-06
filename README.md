@@ -31,8 +31,8 @@ stream.on('auth',           () => console.log(`Stream ${stream.id} has authentic
 stream.on('error', err => console.error(err))
 
 // Table Events. Subscribe events can hit AFTER partial events.
-stream.on('subscribe',      table => console.log(`Stream ${stream.id} has subscribed to table ${table}!`))
-stream.on('unsubscribe',    table => console.log(`Stream ${stream.id} has unsubscribed from table ${table}!`))
+stream.on('subscribe',      (table, channel) => console.log(`Stream ${stream.id} has subscribed to table ${table}${channel ? `:${channel}` : ''}!`))
+stream.on('unsubscribe',    (table, channel) => console.log(`Stream ${stream.id} has unsubscribed from table ${table}${channel ? `:${channel}` : ''}!`))
 stream.on('partial',        (table, data, full_reply) => console.log(`Stream ${stream.id} received a PARTIAL for ${table}`))
 stream.on('insert',         (table, data, full_reply) => console.log(`Stream ${stream.id} received an INSERT for ${table}`))
 stream.on('update',         (table, data, full_reply) => console.log(`Stream ${stream.id} received an UPDATE for ${table}`))
@@ -63,9 +63,8 @@ disconnected_stream.connect() // Will attempt to connect, authenticated and subs
 // Unsubscribe from tables.
 disconnected_stream.unsubscribe('table', 'table')
 
-// Connect and Disconnect are available. When connect is called after a disconnection, the stream
-// will attempt to authenticate and subscribe to any tables it was previously listening for.
-// It will attempt to resume it's previous state prior to any disconnect/unsubscribe call.
+// A socket can be disconnected manually via disconnect(), if connected manually after, the socket will attempt to authenticate (if needed) and subscribe
+// to any channels it was subscribed to priror to disconnect().
 disconnected_stream.connect()
 disconnected_stream.disconnect()
 
@@ -83,7 +82,7 @@ A jesture of notice or a token of appreciation:
 
 ## Changelog
 - 2.1.0
-    - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the channel. `stream.on('subscribe', (table, channel) => {})` If channel is omitted, it's the global table, otherwise it's a specific one.
+    - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the channel. `stream.on('subscribe', (table, channel) => {})` If channel is omitted, it's the global table `subscribe(table)`, otherwise it's a specific one `subscribe(table:symbol)`.
     - Added REST API to BitmexStream object. `stream.send(dir, type = 'GET', data = {})`. Streams that have authenticated on the socket may also perform private REST functions such as making new orders or whatever other permissions the API key allows.
 - 2.0.2
     - Fixed bug in `stream.on('partial|insert|update|delete', (table, data, row) => {})`: data was sending wrong data object.
