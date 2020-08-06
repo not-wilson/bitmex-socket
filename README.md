@@ -41,12 +41,11 @@ stream.on('delete',         (table, data, full_reply) => console.log(`Stream ${s
 // The stream can also use the REST API. Streams with proper auth credentials may do private things.
 stream.send('order', 'POST', { orderQty: 1, symbol: "XBTUSD", side: "Buy" }).then(result => console.log(result)).catch(err => console.error(err))
 
-// If you just only wanted to use the rest API.
-const socket = new BitmexSocket
+// If you just only wanted to use the rest API. The master socket object will be connected to BitMEX doing this however.
 const stream = socket.new_stream(true) // No connect.
 stream.authenticate('key', 'secret') // Adds the key/secret to a secureContext object.
 
-// Stream can now do REST API calls including private if key/secret is valud.
+// Stream can now do REST API calls including private if key/secret is valud. If the stream isn't authenticated, it's limited to only public rest API calls.
 stream.send('order', 'POST', { orderQty: 1, symbol: "XBTUSD", side: "Sell" }).then(result => console.log(result)).catch(err => console.error(err))
 
 // The socket is rate-limited on our end at 5 request bursts every 5 seconds. So 5 requests, 5 seconds repeat.
@@ -82,6 +81,8 @@ A jesture of notice or a token of appreciation:
 
 ## Changelog
 - 2.1.0
+    - Added full object breakdown for the objects this library exports.
+    - Removed `stream.reply()` and `socket.command()` in lieu of internal event messages `_download` and `_upload`. `stream.on('_download', type, reply)` for all raw messages received on the socket. To send commands back `stream.emit('_upload', { })` with the object being a valid message to BitMEX. `{ op: "subscribe", args: "trade" }` for example. To change the message type, add a type item to the object. `{ type: 2 }` sends an empty dc message.
     - Subscriptions to specific channels (`trade:XBTUSD`) now emit their events under the global table and emit a second param for the channel. `stream.on('subscribe', (table, channel) => {})` If channel is omitted, it's the global table `subscribe(table)`, otherwise it's a specific one `subscribe(table:symbol)`.
     - Added REST API to BitmexStream object. `stream.send(dir, type = 'GET', data = {})`. Streams that have authenticated on the socket may also perform private REST functions such as making new orders or whatever other permissions the API key allows.
 - 2.0.2
@@ -93,3 +94,46 @@ A jesture of notice or a token of appreciation:
     - Improved docs somewhat with examples on disconnect() and connect()
 - 2.0.0
     - Complete rewrite and simplification of base library.
+
+## Object Breakdown
+```javascript
+// BitmexSocket Getters.
+BitmexSocket.connected  // Boolean | True if connected, false if disconnected.
+BitmexSocket.reconnects // Integer | Amount of times websocket has reconnected to BitMEX during it's life.
+
+// BitmexSocket Functions.
+BitmexSocket.add_stream(disconnected = false)   // returns BitmexStream object. If disconnected is true, the stream won't attempt to connect itself.
+
+// BitmexSocket Events.
+BitmexSocket.on('connect',      () => {})       // Connected and welcomed by BitMEX.
+BitmexSocket.on('disconnect',   () => {})       // Disconnected from BitMEX entirely.
+BitmexSocket.on('error',        err => {})      // An error or unexpected-response has been received.
+
+// BitmexStream Getters.
+BitmexStream.id         // Returns the ID of the stream.
+BitmexStream.socket     // Returns the parent BitmexSocket object.
+BitmexStream.auth       // Boolean | True if authenticated, false if not.
+BitmexStream.connected  // Boolean |  True if connected, false if not.
+
+// BitmexStream Functions.
+BitmexStream.connect()  // Perform connection actions (includiung authenticate and subscribe if wanted)
+BitmexStream.disconnect()   // Disconnect the stream.
+BitmexStream.authenticate(key, secret, force = false)   // Open access to private tables for a specific account.
+BitmexStream.subscribe(...tables)   // Subscribe to a list of tables.
+BitmexStream.unsubscribe(...tables) // Unsubscribe from a list of tables.
+BitmexStream.send(dir, type, data)  // Send data via the REST API.
+
+// BitmexStream Events.
+BitmexStream.on('connect',      () => {})   // Connected and Welcomed by Bitmex.
+BitmexStream.on('disconnect',   () => {})   // Stream has disconnected from Bitmex.
+BitmexStream.on('auth',         () => {})   // Stream has authenticated.
+BitmexStream.on('subscribe',    (table, channel) => {}) // Stream has subscribed to a table or table:channel
+BitmexStream.on('unsubscribe',  (table, channel) => {}) // Stream has unsubscribed from a table or table:channel
+BitmexStream.on('partial',      (table, data, reply) => {}) // Stream has received a partial for table, with data. The rest of the message is in reply.
+BitmexStream.on('insert',       (table, data, reply) => {}) // See above
+BitmexStream.on('update',       (table, data, reply) => {}) // See above above
+BitmexStream.on('delete',       (table, data, reply) => {}) // See above above above.
+BitmexStream.on('_update',      obj => {})  // Send an update to the BitmexSocket to process and forward to Bitmex. Add type:2 etc to change the Bitmex socket message type.
+BitmexStream.on('_download',    (type, reply) => {})    // Receive a message from Bitmex via BitmexSocket.
+BitmexStream.on('error',        err => {})  // Received an error from BitMEX.
+```

@@ -139,7 +139,7 @@ class BitmexSocket extends EventEmitter {
             }
 
             // Pass the message to the Stream to handle.
-            else this[s.streams][stream].reply(type, reply)
+            else this[s.streams][stream].emit('_download', type, reply) //this[s.streams][stream].reply(type, reply)
         })
 
         // Object store for streams we've created.
@@ -158,6 +158,21 @@ class BitmexSocket extends EventEmitter {
         // Create a new Stream object.
         const stream = new BitmexStream(this)
 
+        // Listen for requests to send data up-stream.
+        stream.on('_upload', action => {
+            // Bind the stream ID to the request.
+            const cmd = { id: stream.id, action }
+
+            // Check for a type change.
+            if(action.type) {
+                cmd.type = action.type
+                delete action.type
+            }
+
+            // Add the command to the queue.
+            this[s.queue].add(cmd)
+        })
+
         // Bind it to the main object.
         this[s.streams][stream.id] = stream
 
@@ -166,15 +181,6 @@ class BitmexSocket extends EventEmitter {
 
         // Return the stream object.
         return stream
-    }
-
-    // Add a command to the message queue.
-    command(stream, cmd) {
-        // This was easier than forgetting to add the stream id every time. 
-        cmd.id = stream.id
-
-        // Add the command to the queue.
-        this[s.queue].add(cmd) 
     }
 }
 
