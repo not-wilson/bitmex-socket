@@ -1,8 +1,10 @@
 # Usage
-`BitmexSocket` can use either `/realtime` or `/realtimemd` depending on your preferences. If you know you're never going to have a need for multiple sockets, you can use the standalone option to connect to `/realtime` and skip a bunch of checks and balances. Using a single socket for `/realtimemd` will work just fine though. The message queue will sort and priortise connection and authentication messages ahead of the rest. Use the messaging queue to save yourself a headache.
+`BitmexSocket` can use either `/realtime` or `/realtimemd` depending on your preferences. If you know you're never going to have a need for multiple sockets, you can use the standalone option to connect to `/realtime` and skip a bunch of checks and balances. Using a single socket for `/realtimemd` will work just fine though. 
 
 # Working Example 1
 ## Use the message queue.
+The message queue will sort connection and authentication messages ahead of the rest. Use the messaging queue to save yourself a headache.
+
 ```javascript
 // Separate streams by symbol.
 const conf = { limited: true, autoconn: true }  // Use the message queue, connect on object creation.
@@ -18,6 +20,36 @@ ethusd.subscribe('margin', 'position:ETHUSD', 'order:ETHUSD', 'trade:ETHUSD', 'o
 
 xbtusd.on('ready', () => console.log("XBTUSD is ready."))   // Won't call until all subscriptions have been responded to from BitMEX.
 ethusd.on('ready', () => console.log("ETHUSD is ready."))
+```
+
+# Working Example 2
+## Time the events yourself.
+```javascript
+const { key, secret } = require('../../bitmex-private').main
+const xbtusd = new BitmexSocket(null, { id: "XBTUSD" })     // Set the ID as the symbol we want to chase for easier subscription handling.
+const ethusd = new BitmexSocket(xbtusd, { id: "ETHUSD" })
+
+// Gotta connect the parent before the child tries or else WebSockets will complain error.
+xbtusd.on('connect', () => ethusd.connect())    // Connect child socket when parent has connected.
+
+// Handle common events for both.
+const sockets = [xbtusd, ethusd]
+sockets.forEach(socket => {
+    socket.on('connect', () => {
+        console.log(`${socket.id} has connected.`)
+        socket.authenticate(key, secret)
+    })
+
+    socket.on('auth', () => {
+        console.log(`${socket.id} has authenticated.`)
+        socket.subscribe('margin', 'position', `trade:${socket.id}`, `orderBookL2:${socket.id}`)
+    })
+
+    socket.on('subscribe', (table, channel) => console.log(`${socket.id} has subscribed to ${!channel ? table : `${channel} of ${table}`}.`))
+})
+
+// Connect the parent socket.
+xbtusd.connect()
 ```
 
 ## Config Options
@@ -47,6 +79,12 @@ Single sockets handle and operate exactly the same as a multisocket. However, us
 const parent    = new BitmexSocket(null, config)        // Creates a socket on /realtimemd
 const child     = new BitmexSocket(parent, config)      // Hooks into the parent socket.
 const child2    = new BitmexSocket(parent, config)      // ^
+
+// Wait for parent to finish connection, then connect children.
+parent.on('connect', () => { child.connect(); child2.connect() })
+
+// Connect the parent.
+parent.connect()
 
 // Stand-alone children.
 const parent    = new BitmexSocket                                  // Creates a socket on /realtimemd

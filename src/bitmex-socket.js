@@ -180,7 +180,7 @@ function config_options(bitmex, opts) {
     if(!vars.includes('autoconn')) opts.autoconn = false
 
     // Use the message queue to handle sending messages.
-    if(!vars.includes('limited')) opts.limited = true
+    if(!vars.includes('limited')) opts.limited = false
 
     // Set the time limit between message bursts.
     if(!vars.includes('queue_delay')) opts.queue_delay = 5
@@ -438,13 +438,13 @@ function receive_message(bitmex, reply) {
 
     // An error has been detected.
     else if(reply.status && reply.error) {
-        // Skip the already-authenticated error. They send an authentication success packet just prior to receiving it.
+        // Skip the already-authenticated error. They send an authentication success packet just prior to it.
         // Literally the most useless 'error' ever...
         if(reply.status === 400 && reply.error.includes('already') && reply.error.includes('authenticated')) return
 
         // Create an Error object.
-        const error = new Error(reply.error)
-        error.status = reply.status
+        const error     = new Error(reply.error)
+        error.status    = reply.status
 
         // Emit the error.
         return void bitmex.emit('error', error)
