@@ -165,6 +165,9 @@ class BitmexSocket extends EventEmitter {
     }
 }
 
+// Export the socket.
+module.exports = BitmexSocket
+
 // Configure the default options for the object.
 function config_options(bitmex, opts) {
     // Load supplied options and compare to default.
@@ -439,7 +442,6 @@ function receive_message(bitmex, reply) {
     // An error has been detected.
     else if(reply.status && reply.error) {
         // Skip the already-authenticated error. They send an authentication success packet just prior to it.
-        // Literally the most useless 'error' ever...
         if(reply.status === 400 && reply.error.includes('already') && reply.error.includes('authenticated')) return
 
         // Create an Error object.
