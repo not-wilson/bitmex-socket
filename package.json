@@ -1,8 +1,8 @@
 {
   "name": "bitmex-socket",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Connect and emit data from BitMEX Websocket API.",
-  "main": "src/socket.js",
+  "main": "src/bitmex-socket.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,6 +23,6 @@
   },
   "homepage": "https://github.com/not-wilson/bitmex-socket#readme",
   "dependencies": {
-    "ws": "^7.2.1"
+    "ws": "^7.3.1"
   }
 }
