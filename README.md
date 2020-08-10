@@ -13,6 +13,8 @@ A jesture of notice or a token of appreciation:
 
 # Changelog
 ## 3.X
+- 3.0.1
+    - Bug Fix: `standalone: true` ignored the `autoconn: true` option.
 - 3.0.0
     - Added DOCS.md
     - *Another* Complete rewrite. Five minutes into a bot and the flaws of the last one were apparent.

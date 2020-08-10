@@ -53,13 +53,16 @@ class BitmexSocket extends EventEmitter {
         build_queue(this)   // Add the message queue if wanted.
 
         // Configure for Standalone.
-        if(this.opt('standalone')) return void config_for_standalone(this, parent)
+        if(this.opt('standalone')) config_for_standalone(this, parent)
 
         // Configure for child.
-        if(parent)  return void config_for_child(this, parent)
+        else if(parent) config_for_child(this, parent)
 
         // Configure for parent.
-        else return void config_for_parent(this)
+        else config_for_parent(this)
+
+         // Everything is fine. Connect to BitMEX.
+        if(this.opt('autoconn')) this.connect()
     }
 
     // Getters.
@@ -249,9 +252,6 @@ function config_for_parent(bitmex) {
 
     // Add circular ref for easier messaging.
     bitmex[s.kids][bitmex.id] = bitmex
-
-    // Everything is fine. Connect to BitMEX.
-    if(bitmex.opt('autoconn')) bitmex.connect()
 }
 
 // Configure object to be a child stream.
@@ -265,9 +265,6 @@ function config_for_child(bitmex, parent) {
 
     // Add a parent reference to this.
     bitmex[s.parent] = parent
-
-    // Everything is fine. Connect to BitMEX.
-    if(bitmex.opt('autoconn')) bitmex.connect()
 }
 
 // Configure for standalone.
