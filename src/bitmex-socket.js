@@ -5,7 +5,6 @@ const request       = require('https').request
 const randomBytes   = require('crypto').randomBytes
 const createHmac    = require('crypto').createHmac
 
-
 // NPM Reqs.
 const WebSocket     = require('ws')
 
@@ -64,7 +63,8 @@ class BitmexSocket extends EventEmitter {
     }
 
     // Getters.
-    get id() { return this[s.id] }
+    get id()    { return this[s.id] }
+    get ready() { return this[s.status].ready }
 
     // Check the value of an option.
     opt(o) { return this[s.opts][o] || this[s.status][o] || false }
@@ -127,7 +127,7 @@ class BitmexSocket extends EventEmitter {
                 port:       443,
                 path:       `/api/v1/${path}`,
                 method:     type,
-                agent:      this[s.state].agent,
+                agent:      this[s.status].agent,
                 headers: {
                     'Content-Type':     'application/json',
                     'Content-Length':   data ? Buffer.byteLength(data) : 0,
