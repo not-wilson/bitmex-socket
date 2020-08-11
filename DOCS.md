@@ -63,8 +63,8 @@ These options cannot be set at object creation, but can be retrieved by `socket.
 
 There's also the internal array `wants[]` for table subscriptions the socket is waiting for and `needs[]`, a list of all wanted subscriptions (used on reconnect). The ready event will fire when the `wants[]` array is empty. You're fine to read them, but it's not recommended to edit them as doing so may cause the ready event to not fire.
 
-# Working Example
-## Single and ready to mingle.
+## Working Example
+### Single and ready to mingle.
 ```javascript
 // Just a simple single socket.
 const socket = new BitmexSocket(null, { autoconn: true, limited: true, standalone: true })
@@ -80,8 +80,8 @@ socket.on('ready', () => console.log(`${socket.id} has finished it's connection.
 Only trading on a single account or just for data purposes, this is probably the quickest method you can use for a single connection.
 - standalone will bypass a bunch of checks and balances for the parent/child server config.
 
-# Working Example II
-# Return of the Sockets
+## Working Example II
+### Return of the Sockets
 ```javascript
 // Create *two* sockets.
 const socket    = new BitmexSocket(null, { autoconn: true, limited: true }) // See, not standalone anymore.
@@ -99,8 +99,8 @@ sockets.forEach(socket => {
 })
 ```
 
-# REST Example
-## 'Cause I'm just that nice.
+## REST Example
+### 'Cause I'm just that nice.
 ```javascript
 
 // This is an unconnected socket.

@@ -1,5 +1,5 @@
 # bitmex-socket
-All-in-one solution to handling connection and data send/receive to BitMEX.
+All-in-one solution to handling connection and data send/receive to BitMEX. See [DOCS.md](https://github.com/not-wilson/bitmex-socket/blob/master/DOCS.md) for examples.
 
 If you like my work, please let me know:  
 notwilson@protonmail.com  
