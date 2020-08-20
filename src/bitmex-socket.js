@@ -16,7 +16,8 @@ const s = {
     kids:       Symbol('kids'),
     socket:     Symbol('socket'),
     status:     Symbol('status'),
-    queue:      Symbol('queue')
+    queue:      Symbol('queue'),
+    ping:       Symbol('ping')
 }
 
 // Store key/secret pairs outside of the object.
@@ -24,6 +25,20 @@ const secureContext = {}
 
 // Handle either single or multiple connections via BitMEX.
 class BitmexSocket extends EventEmitter {
+    /**
+     * @param {BitmexSocket} parent Existing BitmexSocket object to pass data to.
+     * @param {Object} opts Options object.
+     * 
+     * Handle connections to and emit events from the BitMEX Websocket API.
+     * Pass an object with the following for opts.
+     *  @param {Boolean}  standalone  Set the socket into stand-alone mode.
+     *  @param {Boolean}  testnet     Connect to testnet instead of live server.
+     *  @param {Boolean}  autoconn    Automatically connect the socket.
+     *  @param {Boolean}  limited     Use the internal message queue (Highly Recommended)
+     *  @param {Boolean}  queue_delay Delay in seconds between message bursts if using the queue.
+     *  @param {Boolean}  queue_size  Number of messages to send in the queue size.
+     *  @param {String}   id          Socket identifier.
+     */
     constructor(parent = null, opts = {}) {
         super()
 
@@ -51,6 +66,7 @@ class BitmexSocket extends EventEmitter {
         // Do object options.
         config_options(this, opts)
         build_queue(this)   // Add the message queue if wanted.
+        build_pong(this)    // Round-Trip Ping-Pong.
 
         // Configure for Standalone.
         if(this.opt('standalone')) config_for_standalone(this, parent)
@@ -69,19 +85,32 @@ class BitmexSocket extends EventEmitter {
     get id()    { return this[s.id] }
     get ready() { return this[s.status].ready }
 
-    // Check the value of an option.
+    /**
+     * @param {String} o Internal or supplied option to check value for.
+     * 
+     * Check value of internal or supplied option.
+     */
     opt(o) { return this[s.opts][o] || this[s.status][o] || false }
 
-    // Break-out connect/disconnect functions..
+    /** Connect to BitMEX Server. */
     connect() { socket_connect(this) }
 
-    // Disconnect from BitMEX.
+    /** Disconnect from BitMEX Server. */
     disconnect() { socket_close(this) }
 
-    // Send messages back to BitMEX.
+    /**
+     * @param {Object} action Message object to send back to BitMEX.
+     * 
+     * See BitMEX Websocket API docs for allowed message formats.
+     */
     send(action) { socket_send(this, action) }
 
-    // Authenticate the socket.
+    /**
+     * @param {String} key      BitMEX API Key
+     * @param {String} secret   BitMEX API Secret
+     * 
+     * Authenticate socket to allow for private table subscriptions.
+     */
     authenticate(key, secret) {
         // No key/secret pair.
         if(!key || !secret) return void this.emit('error', new Error(`Cannot read key/secret pair.`))
@@ -96,7 +125,9 @@ class BitmexSocket extends EventEmitter {
         this.send({ op: "authKeyExpires", args: [key, expires, createHmac('sha256', secret).update('GET/realtime' + expires).digest('hex')] })
     }
 
-    // Subscribe to tables.
+    /**
+     * @param {IterableIterator | String} tables List of tables to subscribe to.
+     */
     subscribe(...tables) {
         const goodo = []
         tables.forEach(table => { 
@@ -107,7 +138,9 @@ class BitmexSocket extends EventEmitter {
         this.send({ op: "subscribe", args: goodo })
     }
 
-    // Unsubscribe from tables.
+    /**
+     * @param {IterableIterator | String} tables List of tables to unsubscribe from.
+     */
     unsubscribe(...tables) {
         tables.forEach(table => { 
             if(this.opt('needs').includes(table)) this.opt('needs').splice(this.opts('needs').indexOf(table), 1) 
@@ -117,7 +150,13 @@ class BitmexSocket extends EventEmitter {
         this.send({ op: "unsubscribe", args: tables })
     }
 
-    // Send data along the REST API.
+    /**
+     * @param {String} path Path of the REST API to connect to.
+     * @param {String} type Relevant GET, PUT, POST or DELETE HTTP Event.
+     * @param {Object} data Data Object to send back to BitMEX.
+     * 
+     * Send data back to BitMEX via REST API.
+     */
     upload(path, type = 'GET', data = {}) {
         // Stringify the JSON data.
         if(data) data = JSON.stringify(data)
@@ -201,6 +240,17 @@ function config_options(bitmex, opts) {
     bitmex[s.opts] = opts
 }
 
+// Add a ping-pong to keep sockets alive.
+function build_pong(bitmex) {  // |  *  |
+    bitmex[s.ping] = {
+        timer:  null,   // Bet you thought it was gonna be more interesting than this.
+        start:  () => { if(!bitmex[s.ping].timer) bitmex[s.ping].timer = setTimeout(() => bitmex.send("ping"), 5000) },   // Not entirely sure how putting that in my message handler will go.
+        stop:   () => { if(bitmex[s.ping].timer) clearTimeout(bitmex[s.ping].timer) },
+        reset:  () => { bitmex[s.ping].stop(); bitmex[s.ping].start() }
+    }
+}
+
+// Add a messaging queue to sort messages and handle rate-limit.
 function build_queue(bitmex) {
     // We use the parents queue if they have one.
     if(bitmex[s.parent]) return
@@ -294,13 +344,13 @@ function socket_connect(bitmex) {
     socket.on('message', message => socket_message(bitmex, message))
 
     // Forward error events up an object.
-    socket.on('error', err => this.emit('error', err))
+    socket.on('error', err => bitmex.emit('error', err))
 
     // Process unexpected responses and pass them up an object as well.
     socket.on('unexpected-response', (req, res) => {
         const data = []
         res.on('data', d => data.push(d))
-        res.on('end', () => this.emit('error', Buffer.from(data).toString()))
+        res.on('end', () => bitmex.emit('error', Buffer.from(data).toString()))
     })
 
     // Bind socket to bitmex object.
@@ -331,6 +381,9 @@ function socket_open(bitmex, from_server = false) {
 
     // Emit a connect event.
     bitmex.emit('connect')
+
+    // Start sending ping-pong.
+    bitmex[s.ping].start()
 }
 
 // Disconnected from BitMEX via websocket.
@@ -361,6 +414,9 @@ function socket_close(bitmex, from_server = false) {
 
     // Emit disconnect message.
     bitmex.emit('disconnect')
+
+    // No more pongs now, ya'll hear?
+    bitmex[s.ping].stop()
 }
 
 // Receive messages from BitMEX.
@@ -388,6 +444,9 @@ function socket_message(bitmex, message) {
 
 // Handle received messages.
 function receive_message(bitmex, reply) {
+    // Don't parse a pong.
+    if(reply === "pong") return void bitmex[s.ping].reset()
+
     // A welcome / Successful connection message from BitMEX.
     if(reply.info && reply.version && reply.timestamp && reply.docs) return void socket_open(bitmex, true)
 

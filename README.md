@@ -13,6 +13,11 @@ A jesture of notice or a token of appreciation:
 
 # Changelog
 ## 3.X
+- 3.0.2
+    - Re-re-re-re-re-added in ping-pong timer. Child sockets will also send ping/pongs through their parent sockets and BitMEX side is cool with that.
+    - Started adding proper notation for functions.
+    - Bug Fix: `this` in place of variable refernce in function.
+
 - 3.0.1
     - Bug Fix: `standalone: true` ignored the `autoconn: true` option.
 - 3.0.0
